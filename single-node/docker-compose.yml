@@ -105,14 +105,14 @@ services:
     links:
       - wazuh.indexer:wazuh.indexer
       - wazuh.manager:wazuh.manager
-  thehive:
-    image: strangebee/thehive:5.2
+  hive.thehive:
+    image: strangebee/thehive:5.3.1
     hostname: thehive
     depends_on:
-      - cassandra
-      - elasticsearch
-      - minio
-      - cortex
+      - hive.cassandra
+      - hive.elasticsearch
+      - hive.minio
+      - hive.cortex
     mem_limit: 1500m
     ports:
       - "9000:9000"
@@ -128,7 +128,7 @@ services:
       - "--es-hostnames"
       - "elasticsearch"
       - "--s3-endpoint"
-      - "http://minio:9000"
+      - "http://hive.minio:9000"
       - "--s3-access-key"
       - "minioadmin"
       - "--s3-secret-key"
@@ -146,7 +146,7 @@ services:
       - thehive_net
       - wazuh_thehive
 
-  cassandra:
+  hive.cassandra:
     image: 'cassandra:4'
     hostname: cassandra
     mem_limit: 1600m
@@ -157,12 +157,12 @@ services:
       - HEAP_NEWSIZE=1024M
       - CASSANDRA_CLUSTER_NAME=TheHive
     volumes:
-      - cassandradata:/var/lib/cassandra
+      - hive_cassandradata:/var/lib/cassandra
     restart: always
     networks:
       - thehive_net
 
-  elasticsearch:
+  hive.elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.12
     hostname: elasticsearch
     mem_limit: 1500m
@@ -172,11 +172,11 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false
     volumes:
-      - elasticsearchdata:/usr/share/elasticsearch/data
+      - hive_elasticsearchdata:/usr/share/elasticsearch/data
     restart: always
     networks:
       - thehive_net
-  minio:
+  hive.minio:
     image: quay.io/minio/minio
     hostname: minio
     mem_limit: 512m
@@ -187,14 +187,15 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - "miniodata:/data"
+      - "hive_miniodata:/data"
     restart: always
     networks:
       - thehive_net
-  cortex:
+  hive.cortex:
     image: thehiveproject/cortex:3.1.7
+    hostname: cortex
     depends_on:
-      - elasticsearch
+      - hive.elasticsearch
     environment:
       - job_directory=/tmp/cortex-jobs
     volumes:
@@ -220,12 +221,15 @@ volumes:
   wazuh-indexer-data:
   wazuh-dashboard-config:
   wazuh-dashboard-custom:
-  miniodata:
-  cassandradata:
-  elasticsearchdata:
+  hive_miniodata:
+  hive_cassandradata:
+  hive_elasticsearchdata:
 
-  networks:
-    wazuh_net:
-      name: wazuh_net
-    wazuh_thehive:
-      name: wazuh_thehive
+networks:
+  wazuh_net:
+    name: wazuh_net
+  wazuh_thehive:
+    name: wazuh_thehive
+  thehive_net:
+    name: thehive_net
+
